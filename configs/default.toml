@@ -1,0 +1,50 @@
+# tapshow configuration
+# copy to ~/.config/tapshow/config.toml
+
+[display]
+# Window position: top-left, top-right, bottom-left, bottom-right
+position = "bottom-right"
+
+# Margin from screen edge (pixels)
+margin_x = 20
+margin_y = 40
+
+# Time before overlay fades (milliseconds)
+timeout_ms = 2000
+
+# Number of previous keystrokes to show
+history_count = 4
+
+# Show indicator when key is held down
+show_held_keys = true
+
+[appearance]
+# Theme: dark, light
+theme = "dark"
+
+# Font settings
+font_family = "monospace"
+font_size = 18
+
+# Window opacity (0.0 - 1.0)
+opacity = 0.85
+
+# Corner radius (pixels)
+corner_radius = 8
+
+[behavior]
+# Combine modifiers with keys (e.g., "Ctrl+Shift+A")
+combine_modifiers = true
+
+# Show when only a modifier key is pressed
+show_modifier_only = false
+
+# Keys to never display
+excluded_keys = []
+
+[privacy]
+# Pause display when these applications are focused
+# Useful for password managers, banking apps, etc.
+pause_on_apps = []
+# Example:
+# pause_on_apps = ["1password", "keepassxc", "bitwarden"]
