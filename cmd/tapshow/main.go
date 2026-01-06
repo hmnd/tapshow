@@ -5,8 +5,10 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/spf13/cobra"
+
 	"github.com/tapshow/tapshow/internal/config"
 	"github.com/tapshow/tapshow/internal/display"
 	"github.com/tapshow/tapshow/internal/input"
@@ -27,6 +29,7 @@ Designed for screen recordings, presentations, and live coding.`,
 
 	rootCmd.AddCommand(
 		configCmd(),
+		debugCmd(),
 		versionCmd(),
 	)
 
@@ -155,6 +158,55 @@ func configCmd() *cobra.Command {
 
 				fmt.Printf("Created config at: %s\n", path)
 				return nil
+			},
+		},
+	)
+
+	return cmd
+}
+
+func debugCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "debug",
+		Short: "Debugging utilities",
+	}
+
+	cmd.AddCommand(
+		&cobra.Command{
+			Use:   "active-app",
+			Short: "Continuously print the focused window info as it changes",
+			Long:  "Continuously print the focused window info as it changes. Useful for finding apps to add to privacy.pause_on_apps config",
+			Run: func(cmd *cobra.Command, args []string) {
+				compositor := display.Detect()
+				fmt.Printf("Detected compositor: %s\n", compositor)
+				fmt.Println("Watching for focus changes... (Ctrl+C to exit)")
+				fmt.Println()
+
+				sigChan := make(chan os.Signal, 1)
+				signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+				ticker := time.NewTicker(500 * time.Millisecond)
+				defer ticker.Stop()
+
+				var lastInfo string
+				for {
+					select {
+					case <-sigChan:
+						fmt.Println("\nStopped.")
+						return
+					case <-ticker.C:
+						info := privacy.GetFocusedWindow(compositor)
+						infoStr := info.String()
+						if infoStr != lastInfo {
+							lastInfo = infoStr
+							if info.IsEmpty() {
+								fmt.Println("(no focused window)")
+							} else {
+								fmt.Println(infoStr)
+							}
+						}
+					}
+				}
 			},
 		},
 	)
