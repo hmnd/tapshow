@@ -25,7 +25,7 @@ jobs:
         run: tar -czvf tapshow-v${{ inputs.version }}-linux-amd64.tar.gz -C bin tapshow
 
       - name: Rename binary
-        run: mv bin/tapshow bin/tapshow-v${{ inputs.version }}-linux-amd64
+        run: mv bin/tapshow tapshow-v${{ inputs.version }}-linux-amd64
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -33,4 +33,4 @@ jobs:
           name: tapshow-v${{ inputs.version }}-linux-amd64
           path: |
             tapshow-v${{ inputs.version }}-linux-amd64.tar.gz
-            bin/tapshow-v${{ inputs.version }}-linux-amd64
+            tapshow-v${{ inputs.version }}-linux-amd64
