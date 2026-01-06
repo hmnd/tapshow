@@ -120,3 +120,205 @@ func TestDefaultConfig(t *testing.T) {
 		t.Errorf("Default HistoryCount = %d, want 4", cfg.HistoryCount)
 	}
 }
+
+func TestProcessor_ExcludedKeyCombos(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.ShowHeldKeys = false
+	cfg.ExcludedKeys = []string{"Ctrl+Shift+S"}
+
+	proc := New(cfg)
+	events := make(chan input.KeyEvent, 10)
+
+	go proc.Process(events)
+	defer proc.Stop()
+
+	events <- input.KeyEvent{
+		Code:  input.KEY_LEFTCTRL,
+		Name:  "Ctrl",
+		State: input.KeyPressed,
+	}
+	events <- input.KeyEvent{
+		Code:  input.KEY_LEFTSHIFT,
+		Name:  "Shift",
+		State: input.KeyPressed,
+	}
+	events <- input.KeyEvent{
+		Code:  input.KEY_S,
+		Name:  "S",
+		State: input.KeyPressed,
+	}
+
+	time.Sleep(50 * time.Millisecond)
+
+	select {
+	case event := <-proc.Events():
+		t.Errorf("Should not receive excluded key combo, got %q", event.Text)
+	case <-time.After(50 * time.Millisecond):
+	}
+}
+
+func TestProcessor_ExcludedKeyCombos_DifferentOrder(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.ShowHeldKeys = false
+	cfg.ExcludedKeys = []string{"Shift+Ctrl+S"}
+
+	proc := New(cfg)
+	events := make(chan input.KeyEvent, 10)
+
+	go proc.Process(events)
+	defer proc.Stop()
+
+	events <- input.KeyEvent{
+		Code:  input.KEY_LEFTCTRL,
+		Name:  "Ctrl",
+		State: input.KeyPressed,
+	}
+	events <- input.KeyEvent{
+		Code:  input.KEY_LEFTSHIFT,
+		Name:  "Shift",
+		State: input.KeyPressed,
+	}
+	events <- input.KeyEvent{
+		Code:  input.KEY_S,
+		Name:  "S",
+		State: input.KeyPressed,
+	}
+
+	time.Sleep(50 * time.Millisecond)
+
+	select {
+	case event := <-proc.Events():
+		t.Errorf("Should not receive excluded key combo (order should not matter), got %q", event.Text)
+	case <-time.After(50 * time.Millisecond):
+	}
+}
+
+func TestProcessor_ExcludedKeyCombos_WithWhitespace(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.ShowHeldKeys = false
+	cfg.ExcludedKeys = []string{"  Ctrl + Shift + S  "}
+
+	proc := New(cfg)
+	events := make(chan input.KeyEvent, 10)
+
+	go proc.Process(events)
+	defer proc.Stop()
+
+	events <- input.KeyEvent{
+		Code:  input.KEY_LEFTCTRL,
+		Name:  "Ctrl",
+		State: input.KeyPressed,
+	}
+	events <- input.KeyEvent{
+		Code:  input.KEY_LEFTSHIFT,
+		Name:  "Shift",
+		State: input.KeyPressed,
+	}
+	events <- input.KeyEvent{
+		Code:  input.KEY_S,
+		Name:  "S",
+		State: input.KeyPressed,
+	}
+
+	time.Sleep(50 * time.Millisecond)
+
+	select {
+	case event := <-proc.Events():
+		t.Errorf("Should not receive excluded key combo (whitespace should be ignored), got %q", event.Text)
+	case <-time.After(50 * time.Millisecond):
+	}
+}
+
+func TestProcessor_ExcludedKeyCombos_CaseInsensitive(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.ShowHeldKeys = false
+	cfg.ExcludedKeys = []string{"ctrl+shift+s"}
+
+	proc := New(cfg)
+	events := make(chan input.KeyEvent, 10)
+
+	go proc.Process(events)
+	defer proc.Stop()
+
+	events <- input.KeyEvent{
+		Code:  input.KEY_LEFTCTRL,
+		Name:  "Ctrl",
+		State: input.KeyPressed,
+	}
+	events <- input.KeyEvent{
+		Code:  input.KEY_LEFTSHIFT,
+		Name:  "Shift",
+		State: input.KeyPressed,
+	}
+	events <- input.KeyEvent{
+		Code:  input.KEY_S,
+		Name:  "S",
+		State: input.KeyPressed,
+	}
+
+	time.Sleep(50 * time.Millisecond)
+
+	select {
+	case event := <-proc.Events():
+		t.Errorf("Should not receive excluded key combo (case should not matter), got %q", event.Text)
+	case <-time.After(50 * time.Millisecond):
+	}
+}
+
+func TestProcessor_NonExcludedComboStillWorks(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.ShowHeldKeys = false
+	cfg.ExcludedKeys = []string{"Ctrl+Shift+S"}
+
+	proc := New(cfg)
+	events := make(chan input.KeyEvent, 10)
+
+	go proc.Process(events)
+	defer proc.Stop()
+
+	events <- input.KeyEvent{
+		Code:  input.KEY_LEFTCTRL,
+		Name:  "Ctrl",
+		State: input.KeyPressed,
+	}
+	events <- input.KeyEvent{
+		Code:  input.KEY_A,
+		Name:  "A",
+		State: input.KeyPressed,
+	}
+
+	time.Sleep(50 * time.Millisecond)
+
+	select {
+	case event := <-proc.Events():
+		if event.Text != "Ctrl+A" {
+			t.Errorf("Expected 'Ctrl+A', got %q", event.Text)
+		}
+	case <-time.After(100 * time.Millisecond):
+		t.Error("Timeout waiting for non-excluded combo")
+	}
+}
+
+func TestNormalizeKeyCombo(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"Ctrl+S", "ctrl+s"},
+		{"S+Ctrl", "ctrl+s"},
+		{"Ctrl+Shift+S", "ctrl+s+shift"},
+		{"Shift+Ctrl+S", "ctrl+s+shift"},
+		{"  Ctrl + Shift + S  ", "ctrl+s+shift"},
+		{"ctrl+shift+s", "ctrl+s+shift"},
+		{"CTRL+SHIFT+S", "ctrl+s+shift"},
+		{"A", "a"},
+		{"CapsLock", "capslock"},
+	}
+
+	for _, tc := range tests {
+		result := normalizeKeyCombo(tc.input)
+		if result != tc.expected {
+			t.Errorf("normalizeKeyCombo(%q) = %q, want %q", tc.input, result, tc.expected)
+		}
+	}
+}

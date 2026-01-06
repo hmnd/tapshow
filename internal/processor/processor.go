@@ -1,6 +1,7 @@
 package processor
 
 import (
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -46,6 +47,12 @@ func DefaultConfig() Config {
 }
 
 func New(cfg Config) *Processor {
+	normalizedExcluded := make([]string, len(cfg.ExcludedKeys))
+	for i, key := range cfg.ExcludedKeys {
+		normalizedExcluded[i] = normalizeKeyCombo(key)
+	}
+	cfg.ExcludedKeys = normalizedExcluded
+
 	return &Processor{
 		events:  make(chan DisplayEvent, 50),
 		done:    make(chan struct{}),
@@ -88,12 +95,6 @@ func (p *Processor) Stop() {
 }
 
 func (p *Processor) handleKeyEvent(ev input.KeyEvent) {
-	for _, excluded := range p.config.ExcludedKeys {
-		if strings.EqualFold(ev.Name, excluded) {
-			return
-		}
-	}
-
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -106,7 +107,9 @@ func (p *Processor) handleKeyEvent(ev input.KeyEvent) {
 		}
 
 		if p.config.ShowModifierOnly && ev.State == input.KeyPressed {
-			p.emitEvent(ev.Name, false)
+			if !p.isExcluded(ev.Name) {
+				p.emitEvent(ev.Name, false)
+			}
 		}
 		return
 	}
@@ -114,6 +117,9 @@ func (p *Processor) handleKeyEvent(ev input.KeyEvent) {
 	switch ev.State {
 	case input.KeyPressed:
 		text := p.buildKeyText(ev.Name)
+		if p.isExcluded(text) {
+			return
+		}
 		p.emitEvent(text, false)
 		p.lastKey = &ev
 
@@ -126,7 +132,9 @@ func (p *Processor) handleKeyEvent(ev input.KeyEvent) {
 				defer p.mu.Unlock()
 				if p.lastKey != nil && p.lastKey.Code == ev.Code {
 					text := p.buildKeyText(ev.Name)
-					p.emitEvent(text+" (held)", true)
+					if !p.isExcluded(text) {
+						p.emitEvent(text+" (held)", true)
+					}
 				}
 			})
 		}
@@ -140,7 +148,9 @@ func (p *Processor) handleKeyEvent(ev input.KeyEvent) {
 	case input.KeyHeld:
 		if p.config.ShowHeldKeys {
 			text := p.buildKeyText(ev.Name)
-			p.emitEvent(text, true)
+			if !p.isExcluded(text) {
+				p.emitEvent(text, true)
+			}
 		}
 	}
 }
@@ -187,4 +197,29 @@ func (p *Processor) emitEvent(text string, isHeld bool) {
 	case p.events <- event:
 	default:
 	}
+}
+
+func normalizeKeyCombo(combo string) string {
+	parts := strings.Split(combo, "+")
+	normalized := make([]string, 0, len(parts))
+
+	for _, part := range parts {
+		trimmed := strings.TrimSpace(part)
+		if trimmed != "" {
+			normalized = append(normalized, strings.ToLower(trimmed))
+		}
+	}
+
+	sort.Strings(normalized)
+	return strings.Join(normalized, "+")
+}
+
+func (p *Processor) isExcluded(text string) bool {
+	normalizedText := normalizeKeyCombo(text)
+	for _, excluded := range p.config.ExcludedKeys {
+		if normalizedText == excluded {
+			return true
+		}
+	}
+	return false
 }
