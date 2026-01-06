@@ -1,16 +1,15 @@
-# Tapshow
+<h1 align=center>tapshow</h1>
 
-A lightweight keystroke visualizer for Wayland Linux systems. Displays your keystrokes as a minimal overlay window - perfect for screen recordings, presentations, and live coding.
+`tapshow` is a lightweight keystroke visualizer for Wayland systems. Displays your keystrokes as a minimal overlay window - perfect for screen recordings, presentations, and live coding!
+
+![Screenshot of tapshow in action](assets/example.png)
 
 ## Features
 
 - Real-time keystroke visualization
 - Modifier key combination display (e.g., `Ctrl+Shift+A`)
-- Keystroke history display
-- Held key indication
 - Privacy mode - auto-pause for sensitive applications
-- Configurable appearance and behavior
-- Automatic compositor detection
+- Inherits your GTK styles
 
 ## Compositor Support
 
@@ -54,6 +53,10 @@ groups | grep input
 
 ## Installation
 
+### From Release
+
+[Download the latest release](https://github.com/hmnd/tapshow/releases/latest)
+
 ### From Source
 
 ```bash
@@ -80,38 +83,16 @@ tapshow config path
 # Create default config file
 tapshow config init
 
+# Continuously log active app to help with pause_on_apps
+tapshow debug active-app
+
 # Show version
 tapshow version
 ```
 
 ## Configuration
 
-Configuration file location: `~/.config/tapshow/config.toml`
-
-```toml
-[display]
-position = "bottom-right"  # top-left, top-right, bottom-left, bottom-right
-margin_x = 20
-margin_y = 40
-timeout_ms = 2000          # Fade timeout in milliseconds
-history_count = 4          # Number of previous keys to show
-show_held_keys = true
-
-[appearance]
-theme = "dark"             # dark, light
-font_size = 18
-opacity = 0.85
-corner_radius = 8
-
-[behavior]
-combine_modifiers = true   # Show "Ctrl+A" instead of separate keys
-show_modifier_only = false # Show when only modifier is pressed
-excluded_keys = []         # Keys to never display, e.g., ["CapsLock"]
-
-[privacy]
-pause_on_apps = []         # Pause when these apps are focused
-# Example: ["1password", "keepassxc", "bitwarden"]
-```
+Run `tapshow config init` or refer to [the default config](configs/default.toml)
 
 ## Privacy Mode
 
@@ -119,7 +100,11 @@ Tapshow can automatically pause when sensitive applications are focused. Add app
 
 ```toml
 [privacy]
-pause_on_apps = ["1password", "keepassxc", "bitwarden", "gnome-keyring"]
+pause_on_apps = [
+  "simple-match",
+  { class = "org.keepassxc" },
+  { process = "1password", title = "unlock" },
+]
 ```
 
 The privacy monitor checks the focused window every 500ms and pauses the display when a matching app name is detected.
@@ -165,13 +150,6 @@ sudo usermod -aG input $USER
 ### Build
 
 ```bash
-just build
-```
-
-### Build with custom version
-
-```bash
-# Version is read from VERSION file
 just build
 ```
 

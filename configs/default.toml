@@ -50,9 +50,8 @@ excluded_keys = []
 # Useful for password managers, banking apps, etc.
 pause_on_apps = []
 # Example:
-# pause_on_apps = ["1password", "keepassxc", "bitwarden"]
-# or:
-# [[privacy.pause_on_apps]]
-# title = "My Password Manager"
-# [[privacy.pause_on_apps]]
-# class = "chrome"
+# pause_on_apps = [
+#   "simple-match",
+#   { class = "org.keepassxc" },
+#   { process = "1password", title = "unlock" },
+# ]
