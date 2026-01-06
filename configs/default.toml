@@ -9,8 +9,11 @@ position = "bottom-right"
 margin_x = 20
 margin_y = 40
 
-# Time before overlay fades (milliseconds)
+# Time before overlay resets to placeholder (milliseconds)
 timeout_ms = 2000
+
+# Time before showing "(held)" indicator (milliseconds)
+held_key_timeout_ms = 500
 
 # Number of previous keystrokes to show
 history_count = 4

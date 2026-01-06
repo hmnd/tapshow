@@ -68,6 +68,7 @@ func (g *GTKWindowBackend) setupWindow() {
 }
 
 func (g *GTKWindowBackend) Stop() {
+	g.StopTimer()
 	close(g.quit)
 	if g.app != nil {
 		g.app.Quit()

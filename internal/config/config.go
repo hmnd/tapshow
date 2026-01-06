@@ -17,12 +17,13 @@ type Config struct {
 }
 
 type DisplayConfig struct {
-	Position     string `toml:"position"` // top-left, top-right, bottom-left, bottom-right
-	MarginX      int    `toml:"margin_x"`
-	MarginY      int    `toml:"margin_y"`
-	TimeoutMs    int    `toml:"timeout_ms"`
-	HistoryCount int    `toml:"history_count"`
-	ShowHeldKeys bool   `toml:"show_held_keys"`
+	Position         string `toml:"position"` // top-left, top-right, bottom-left, bottom-right
+	MarginX          int    `toml:"margin_x"`
+	MarginY          int    `toml:"margin_y"`
+	TimeoutMs        int    `toml:"timeout_ms"`
+	HeldKeyTimeoutMs int    `toml:"held_key_timeout_ms"`
+	HistoryCount     int    `toml:"history_count"`
+	ShowHeldKeys     bool   `toml:"show_held_keys"`
 }
 
 type AppearanceConfig struct {
@@ -45,12 +46,13 @@ type PrivacyConfig struct {
 func Default() *Config {
 	return &Config{
 		Display: DisplayConfig{
-			Position:     "bottom-right",
-			MarginX:      20,
-			MarginY:      40,
-			TimeoutMs:    2000,
-			HistoryCount: 4,
-			ShowHeldKeys: true,
+			Position:         "bottom-right",
+			MarginX:          20,
+			MarginY:          40,
+			TimeoutMs:        2000,
+			HeldKeyTimeoutMs: 500,
+			HistoryCount:     4,
+			ShowHeldKeys:     true,
 		},
 		Appearance: AppearanceConfig{
 			Theme:        "dark",
@@ -136,4 +138,8 @@ func Path() (string, error) {
 
 func (c *Config) Timeout() time.Duration {
 	return time.Duration(c.Display.TimeoutMs) * time.Millisecond
+}
+
+func (c *Config) HeldKeyTimeout() time.Duration {
+	return time.Duration(c.Display.HeldKeyTimeoutMs) * time.Millisecond
 }

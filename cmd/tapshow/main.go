@@ -62,7 +62,7 @@ func run(cmd *cobra.Command, args []string) error {
 		CombineModifiers: cfg.Behavior.CombineModifiers,
 		ShowModifierOnly: cfg.Behavior.ShowModifierOnly,
 		ShowHeldKeys:     cfg.Display.ShowHeldKeys,
-		HeldKeyTimeout:   cfg.Timeout() / 4,
+		HeldKeyTimeout:   cfg.HeldKeyTimeout(),
 		HistoryCount:     cfg.Display.HistoryCount,
 		ExcludedKeys:     cfg.Behavior.ExcludedKeys,
 	}
