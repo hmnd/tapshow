@@ -27,13 +27,13 @@ A lightweight keystroke visualizer for Wayland Linux systems. Displays your keys
 
 ```bash
 # Debian/Ubuntu
-sudo apt install libgtk-4-dev libglib2.0-dev
+sudo apt install libgtk-4-dev libglib2.0-dev libgirepository1.0-dev
 
 # Fedora
-sudo dnf install gtk4-devel glib2-devel
+sudo dnf install gtk4-devel glib2-devel gobject-introspection-devel
 
 # Arch Linux
-sudo pacman -S gtk4 glib2
+sudo pacman -S gtk4 glib2 gobject-introspection
 ```
 
 ### Input Group Membership
