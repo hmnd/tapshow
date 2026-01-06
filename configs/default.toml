@@ -51,3 +51,8 @@ excluded_keys = []
 pause_on_apps = []
 # Example:
 # pause_on_apps = ["1password", "keepassxc", "bitwarden"]
+# or:
+# [[privacy.pause_on_apps]]
+# title = "My Password Manager"
+# [[privacy.pause_on_apps]]
+# class = "chrome"

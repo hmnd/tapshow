@@ -40,7 +40,57 @@ type BehaviorConfig struct {
 }
 
 type PrivacyConfig struct {
-	PauseOnApps []string `toml:"pause_on_apps"`
+	PauseOnApps AppMatchers `toml:"pause_on_apps"`
+}
+
+type AppMatchers []AppMatcher
+
+type AppMatcher struct {
+	Value   string
+	Class   string `toml:"class"`
+	Process string `toml:"process"`
+	Path    string `toml:"path"`
+	Title   string `toml:"title"`
+}
+
+func (a *AppMatchers) UnmarshalTOML(data any) error {
+	var items []any
+	switch v := data.(type) {
+	case []any:
+		items = v
+	case []map[string]any:
+		for _, m := range v {
+			items = append(items, m)
+		}
+	default:
+		return fmt.Errorf("expected array, got %T", data)
+	}
+
+	*a = make([]AppMatcher, 0, len(items))
+	for _, item := range items {
+		var m AppMatcher
+		switch v := item.(type) {
+		case string:
+			m.Value = v
+		case map[string]any:
+			if class, ok := v["class"].(string); ok {
+				m.Class = class
+			}
+			if process, ok := v["process"].(string); ok {
+				m.Process = process
+			}
+			if path, ok := v["path"].(string); ok {
+				m.Path = path
+			}
+			if title, ok := v["title"].(string); ok {
+				m.Title = title
+			}
+		default:
+			return fmt.Errorf("unexpected type %T in pause_on_apps", item)
+		}
+		*a = append(*a, m)
+	}
+	return nil
 }
 
 func Default() *Config {
@@ -66,7 +116,7 @@ func Default() *Config {
 			ExcludedKeys:     []string{},
 		},
 		Privacy: PrivacyConfig{
-			PauseOnApps: []string{},
+			PauseOnApps: AppMatchers{},
 		},
 	}
 }

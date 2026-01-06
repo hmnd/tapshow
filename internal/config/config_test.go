@@ -110,14 +110,17 @@ func TestPrivacyConfig(t *testing.T) {
 	if len(cfg.Privacy.PauseOnApps) != 0 {
 		t.Errorf("Default PauseOnApps should be empty, got %v", cfg.Privacy.PauseOnApps)
 	}
+}
 
-	cfg.Privacy.PauseOnApps = []string{"1password", "keepassxc"}
-
+func TestPrivacyConfigSimpleStrings(t *testing.T) {
+	configContent := `
+[privacy]
+pause_on_apps = ["1password", "keepassxc"]
+`
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, "config.toml")
-
-	if err := cfg.SaveTo(configPath); err != nil {
-		t.Fatalf("SaveTo failed: %v", err)
+	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
 	}
 
 	loaded, err := LoadFrom(configPath)
@@ -127,6 +130,93 @@ func TestPrivacyConfig(t *testing.T) {
 
 	if len(loaded.Privacy.PauseOnApps) != 2 {
 		t.Errorf("Loaded PauseOnApps length = %d, want 2", len(loaded.Privacy.PauseOnApps))
+	}
+
+	if loaded.Privacy.PauseOnApps[0].Value != "1password" {
+		t.Errorf("First matcher value = %q, want %q", loaded.Privacy.PauseOnApps[0].Value, "1password")
+	}
+}
+
+func TestPrivacyConfigStructuredMatchers(t *testing.T) {
+	configContent := `
+[privacy]
+pause_on_apps = [
+  "simple-match",
+  { class = "org.keepassxc" },
+  { process = "1password", title = "unlock" },
+]
+`
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "config.toml")
+	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+
+	loaded, err := LoadFrom(configPath)
+	if err != nil {
+		t.Fatalf("LoadFrom failed: %v", err)
+	}
+
+	if len(loaded.Privacy.PauseOnApps) != 3 {
+		t.Fatalf("Loaded PauseOnApps length = %d, want 3", len(loaded.Privacy.PauseOnApps))
+	}
+
+	if loaded.Privacy.PauseOnApps[0].Value != "simple-match" {
+		t.Errorf("First matcher value = %q, want %q", loaded.Privacy.PauseOnApps[0].Value, "simple-match")
+	}
+
+	if loaded.Privacy.PauseOnApps[1].Class != "org.keepassxc" {
+		t.Errorf("Second matcher class = %q, want %q", loaded.Privacy.PauseOnApps[1].Class, "org.keepassxc")
+	}
+
+	if loaded.Privacy.PauseOnApps[2].Process != "1password" {
+		t.Errorf("Third matcher process = %q, want %q", loaded.Privacy.PauseOnApps[2].Process, "1password")
+	}
+	if loaded.Privacy.PauseOnApps[2].Title != "unlock" {
+		t.Errorf("Third matcher title = %q, want %q", loaded.Privacy.PauseOnApps[2].Title, "unlock")
+	}
+}
+
+func TestPrivacyConfigArrayOfTables(t *testing.T) {
+	configContent := `
+[[privacy.pause_on_apps]]
+class = "org.keepassxc"
+
+[[privacy.pause_on_apps]]
+title = "Example"
+
+[[privacy.pause_on_apps]]
+process = "1password"
+title = "unlock"
+`
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "config.toml")
+	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+
+	loaded, err := LoadFrom(configPath)
+	if err != nil {
+		t.Fatalf("LoadFrom failed: %v", err)
+	}
+
+	if len(loaded.Privacy.PauseOnApps) != 3 {
+		t.Fatalf("Loaded PauseOnApps length = %d, want 3", len(loaded.Privacy.PauseOnApps))
+	}
+
+	if loaded.Privacy.PauseOnApps[0].Class != "org.keepassxc" {
+		t.Errorf("First matcher class = %q, want %q", loaded.Privacy.PauseOnApps[0].Class, "org.keepassxc")
+	}
+
+	if loaded.Privacy.PauseOnApps[1].Title != "Example" {
+		t.Errorf("Second matcher title = %q, want %q", loaded.Privacy.PauseOnApps[1].Title, "Example")
+	}
+
+	if loaded.Privacy.PauseOnApps[2].Process != "1password" {
+		t.Errorf("Third matcher process = %q, want %q", loaded.Privacy.PauseOnApps[2].Process, "1password")
+	}
+	if loaded.Privacy.PauseOnApps[2].Title != "unlock" {
+		t.Errorf("Third matcher title = %q, want %q", loaded.Privacy.PauseOnApps[2].Title, "unlock")
 	}
 }
 
