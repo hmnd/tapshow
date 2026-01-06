@@ -18,7 +18,7 @@ runs:
       shell: bash
       run: |
         sudo apt-get update
-        sudo apt-get install -y libgtk-4-dev upx
+        sudo apt-get install -y libgtk-4-dev libgirepository1.0-dev upx
 
     - name: Setup just
       uses: extractions/setup-just@v2
