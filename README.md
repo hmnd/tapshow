@@ -2,7 +2,9 @@
 
 `tapshow` is a lightweight keystroke visualizer for Wayland systems. Displays your keystrokes as a minimal overlay window - perfect for screen recordings, presentations, and live coding!
 
-![Screenshot of tapshow in action](assets/example.png)
+<p align="center">
+  <img title="Screenshot of tapshow in action" src="assets/example.png" />
+</p>
 
 ## Features
 
