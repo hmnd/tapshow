@@ -12,6 +12,8 @@ type Backend interface {
 
 	UpdateHistory(events []processor.DisplayEvent)
 
+	Reset()
+
 	SetPaused(paused bool)
 
 	Run() error

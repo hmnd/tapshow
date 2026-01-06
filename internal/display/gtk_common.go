@@ -3,7 +3,6 @@ package display
 import (
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/diamondburned/gotk4/pkg/gdk/v4"
 	"github.com/diamondburned/gotk4/pkg/glib/v2"
@@ -22,7 +21,6 @@ type GTKCommon struct {
 	hasKeys     bool
 	paused      bool
 	compositor  Compositor
-	resetTimer  *time.Timer
 }
 
 func (g *GTKCommon) InitGTK(cfg *config.Config, compositor Compositor) {
@@ -155,8 +153,6 @@ func (g *GTKCommon) ShowKey(event processor.DisplayEvent) {
 		return
 	}
 
-	g.scheduleReset()
-
 	glib.IdleAdd(func() {
 		if g.keysBox == nil {
 			return
@@ -184,8 +180,6 @@ func (g *GTKCommon) UpdateHistoryDisplay(events []processor.DisplayEvent) {
 	if g.paused || g.keysBox == nil {
 		return
 	}
-
-	g.scheduleReset()
 
 	glib.IdleAdd(func() {
 		if g.keysBox == nil {
@@ -217,7 +211,7 @@ func (g *GTKCommon) SetPausedState(paused bool) {
 	g.paused = paused
 }
 
-func (g *GTKCommon) resetToPlaceholder() {
+func (g *GTKCommon) ResetDisplay() {
 	glib.IdleAdd(func() {
 		g.mu.Lock()
 		defer g.mu.Unlock()
@@ -236,23 +230,4 @@ func (g *GTKCommon) resetToPlaceholder() {
 			g.window.QueueResize()
 		}
 	})
-}
-
-func (g *GTKCommon) scheduleReset() {
-	if g.resetTimer != nil {
-		g.resetTimer.Stop()
-	}
-	timeout := g.cfg.Timeout()
-	if timeout > 0 {
-		g.resetTimer = time.AfterFunc(timeout, g.resetToPlaceholder)
-	}
-}
-
-func (g *GTKCommon) StopTimer() {
-	g.mu.Lock()
-	defer g.mu.Unlock()
-	if g.resetTimer != nil {
-		g.resetTimer.Stop()
-		g.resetTimer = nil
-	}
 }

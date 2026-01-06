@@ -32,6 +32,10 @@ func (g *GTKWindowBackend) UpdateHistory(events []processor.DisplayEvent) {
 	g.UpdateHistoryDisplay(events)
 }
 
+func (g *GTKWindowBackend) Reset() {
+	g.ResetDisplay()
+}
+
 func (g *GTKWindowBackend) SetPaused(paused bool) {
 	g.SetPausedState(paused)
 }
@@ -68,7 +72,6 @@ func (g *GTKWindowBackend) setupWindow() {
 }
 
 func (g *GTKWindowBackend) Stop() {
-	g.StopTimer()
 	close(g.quit)
 	if g.app != nil {
 		g.app.Quit()

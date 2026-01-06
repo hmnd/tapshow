@@ -63,6 +63,7 @@ func run(cmd *cobra.Command, args []string) error {
 		ShowModifierOnly: cfg.Behavior.ShowModifierOnly,
 		ShowHeldKeys:     cfg.Display.ShowHeldKeys,
 		HeldKeyTimeout:   cfg.HeldKeyTimeout(),
+		ResetTimeout:     cfg.Timeout(),
 		HistoryCount:     cfg.Display.HistoryCount,
 		ExcludedKeys:     cfg.Behavior.ExcludedKeys,
 	}
@@ -84,8 +85,12 @@ func run(cmd *cobra.Command, args []string) error {
 
 	go func() {
 		for event := range proc.Events() {
-			backend.Show(event)
-			backend.UpdateHistory(proc.History())
+			if event.IsReset {
+				backend.Reset()
+			} else {
+				backend.Show(event)
+				backend.UpdateHistory(proc.History())
+			}
 		}
 	}()
 

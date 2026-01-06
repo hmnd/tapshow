@@ -13,17 +13,19 @@ type DisplayEvent struct {
 	Text      string
 	Timestamp time.Time
 	IsHeld    bool
+	IsReset   bool
 }
 
 type Processor struct {
-	events    chan DisplayEvent
-	done      chan struct{}
-	config    Config
-	mu        sync.Mutex
-	modifiers input.Modifier
-	history   []DisplayEvent
-	lastKey   *input.KeyEvent
-	heldTimer *time.Timer
+	events     chan DisplayEvent
+	done       chan struct{}
+	config     Config
+	mu         sync.Mutex
+	modifiers  input.Modifier
+	history    []DisplayEvent
+	lastKey    *input.KeyEvent
+	heldTimer  *time.Timer
+	resetTimer *time.Timer
 }
 
 type Config struct {
@@ -31,6 +33,7 @@ type Config struct {
 	ShowModifierOnly bool
 	ShowHeldKeys     bool
 	HeldKeyTimeout   time.Duration
+	ResetTimeout     time.Duration
 	HistoryCount     int
 	ExcludedKeys     []string
 }
@@ -41,6 +44,7 @@ func DefaultConfig() Config {
 		ShowModifierOnly: false,
 		ShowHeldKeys:     true,
 		HeldKeyTimeout:   500 * time.Millisecond,
+		ResetTimeout:     2000 * time.Millisecond,
 		HistoryCount:     4,
 		ExcludedKeys:     []string{},
 	}
@@ -73,6 +77,12 @@ func (p *Processor) History() []DisplayEvent {
 	return result
 }
 
+func (p *Processor) ClearHistory() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.history = p.history[:0]
+}
+
 func (p *Processor) Process(inputEvents <-chan input.KeyEvent) {
 	for {
 		select {
@@ -91,6 +101,9 @@ func (p *Processor) Stop() {
 	close(p.done)
 	if p.heldTimer != nil {
 		p.heldTimer.Stop()
+	}
+	if p.resetTimer != nil {
+		p.resetTimer.Stop()
 	}
 }
 
@@ -193,9 +206,29 @@ func (p *Processor) emitEvent(text string, isHeld bool) {
 		p.history = append(p.history, event)
 	}
 
+	p.scheduleReset()
+
 	select {
 	case p.events <- event:
 	default:
+	}
+}
+
+func (p *Processor) scheduleReset() {
+	if p.resetTimer != nil {
+		p.resetTimer.Stop()
+	}
+	if p.config.ResetTimeout > 0 {
+		p.resetTimer = time.AfterFunc(p.config.ResetTimeout, func() {
+			p.mu.Lock()
+			p.history = p.history[:0]
+			p.mu.Unlock()
+
+			select {
+			case p.events <- DisplayEvent{IsReset: true, Timestamp: time.Now()}:
+			default:
+			}
+		})
 	}
 }
 
