@@ -19,15 +19,18 @@ jobs:
         id: version
         run: echo "version=$(cat VERSION)" >> "$GITHUB_OUTPUT"
 
+  test:
+    uses: ./.github/workflows/test.yml
+
   build:
-    needs: version
+    needs: [version, test]
     uses: ./.github/workflows/build.yml
     with:
       version: ${{ needs.version.outputs.version }}
 
   release:
     runs-on: ubuntu-latest
-    needs: [version, build]
+    needs: [version, test, build]
     permissions:
       contents: write
 
