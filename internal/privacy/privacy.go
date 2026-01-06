@@ -69,20 +69,25 @@ func (w WindowInfo) Matches(m config.AppMatcher) bool {
 }
 
 type Monitor struct {
-	mu         sync.RWMutex
-	matchers   config.AppMatchers
-	compositor display.Compositor
-	paused     bool
-	done       chan struct{}
-	onChange   func(paused bool)
+	mu             sync.RWMutex
+	matchers       config.AppMatchers
+	compositor     display.Compositor
+	paused         bool
+	done           chan struct{}
+	onChange       func(paused bool)
+	resumeCooldown time.Duration
+	lastMatchAt    time.Time
 }
+
+const defaultResumeCooldownMs = 500 * time.Millisecond
 
 func NewMonitor(matchers config.AppMatchers, onChange func(paused bool)) *Monitor {
 	return &Monitor{
-		matchers:   matchers,
-		compositor: display.Detect(),
-		done:       make(chan struct{}),
-		onChange:   onChange,
+		matchers:       matchers,
+		compositor:     display.Detect(),
+		done:           make(chan struct{}),
+		onChange:       onChange,
+		resumeCooldown: defaultResumeCooldownMs,
 	}
 }
 
@@ -104,6 +109,10 @@ func (m *Monitor) IsPaused() bool {
 	return m.paused
 }
 
+func (m *Monitor) testCheckWindow(info WindowInfo) {
+	m.checkWindowInfo(info)
+}
+
 func (m *Monitor) monitorLoop() {
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
@@ -123,7 +132,10 @@ func (m *Monitor) checkFocusedWindow() {
 	if info.IsEmpty() {
 		return
 	}
+	m.checkWindowInfo(info)
+}
 
+func (m *Monitor) checkWindowInfo(info WindowInfo) {
 	shouldPause := false
 	for _, matcher := range m.matchers {
 		if info.Matches(matcher) {
@@ -133,12 +145,23 @@ func (m *Monitor) checkFocusedWindow() {
 	}
 
 	m.mu.Lock()
-	changed := m.paused != shouldPause
-	m.paused = shouldPause
+	if shouldPause {
+		m.lastMatchAt = time.Now()
+	}
+
+	newPaused := shouldPause
+	if m.paused && !shouldPause && m.resumeCooldown > 0 {
+		if time.Since(m.lastMatchAt) < m.resumeCooldown {
+			newPaused = true
+		}
+	}
+
+	changed := m.paused != newPaused
+	m.paused = newPaused
 	m.mu.Unlock()
 
 	if changed && m.onChange != nil {
-		m.onChange(shouldPause)
+		m.onChange(newPaused)
 	}
 }
 

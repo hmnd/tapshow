@@ -2,6 +2,8 @@ package privacy
 
 import (
 	"testing"
+	"testing/synctest"
+	"time"
 
 	"github.com/tapshow/tapshow/internal/config"
 )
@@ -231,6 +233,48 @@ func TestMonitor_InitialState(t *testing.T) {
 	if monitor.IsPaused() {
 		t.Error("Monitor should not be paused initially")
 	}
+}
+
+func TestMonitor_ResumeCooldown(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		matchers := config.AppMatchers{
+			{Value: "1password"},
+		}
+
+		var pauseChanges []bool
+		monitor := NewMonitor(matchers, func(paused bool) {
+			pauseChanges = append(pauseChanges, paused)
+		})
+
+		sensitiveApp := WindowInfo{Class: "1password"}
+		normalApp := WindowInfo{Class: "firefox"}
+
+		monitor.testCheckWindow(sensitiveApp)
+		if !monitor.IsPaused() {
+			t.Error("Monitor should pause for sensitive app")
+		}
+
+		monitor.testCheckWindow(normalApp)
+		if !monitor.IsPaused() {
+			t.Error("Monitor should remain paused during cooldown period")
+		}
+
+		time.Sleep(defaultResumeCooldownMs)
+
+		monitor.testCheckWindow(normalApp)
+		if monitor.IsPaused() {
+			t.Error("Monitor should unpause after cooldown period")
+		}
+
+		pauseChanges = nil
+		monitor.testCheckWindow(sensitiveApp)
+		if !monitor.IsPaused() {
+			t.Error("Monitor should pause immediately for sensitive app")
+		}
+		if len(pauseChanges) != 1 || pauseChanges[0] != true {
+			t.Errorf("Expected one pause=true change, got %v", pauseChanges)
+		}
+	})
 }
 
 func TestMatching_Integration(t *testing.T) {
