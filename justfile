@@ -1,29 +1,26 @@
 version := `cat VERSION`
 
-# Build the binary using zig as the C/C++ compiler
-build:
-    CC="zig cc" CXX="zig c++" go build -ldflags "-X main.version={{version}}" -o bin/tapshow ./cmd/tapshow
+export CC := "zig cc"
+export CXX := "zig c++"
 
-# Run the application
+build:
+    go build -ldflags "-X main.version={{version}}" -o bin/tapshow ./cmd/tapshow
+
 run: build
     ./bin/tapshow
 
-# Run all tests
-test:
-    go test ./...
+test path="./..." *flags="":
+    go test {{flags}} {{path}}
 
-# Run tests with verbose output
 test-verbose:
     go test -v ./...
 
-# Run tests with coverage
 test-coverage:
     go test -cover ./...
 
 build-release:
-    CC="zig cc" CXX="zig c++" go build -ldflags "-s -w -X main.version={{version}}" -o bin/tapshow ./cmd/tapshow
+    go build -ldflags "-s -w -X main.version={{version}}" -o bin/tapshow ./cmd/tapshow
     upx --best bin/tapshow
 
-# Clean build artifacts
 clean:
     rm -rf bin/
