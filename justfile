@@ -20,6 +20,10 @@ test-verbose:
 test-coverage:
     go test -cover ./...
 
+build-release:
+    CC="zig cc" CXX="zig c++" go build -ldflags "-s -w -X main.version={{version}}" -o bin/tapshow ./cmd/tapshow
+    upx --best bin/tapshow
+
 # Clean build artifacts
 clean:
     rm -rf bin/
