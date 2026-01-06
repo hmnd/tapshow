@@ -1,0 +1,36 @@
+name: Build
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Build release
+        run: just build-release
+
+      - name: Create tarball
+        run: tar -czvf tapshow-v${{ inputs.version }}-linux-amd64.tar.gz -C bin tapshow
+
+      - name: Rename binary
+        run: mv bin/tapshow bin/tapshow-v${{ inputs.version }}-linux-amd64
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tapshow-v${{ inputs.version }}-linux-amd64
+          path: |
+            tapshow-v${{ inputs.version }}-linux-amd64.tar.gz
+            bin/tapshow-v${{ inputs.version }}-linux-amd64
