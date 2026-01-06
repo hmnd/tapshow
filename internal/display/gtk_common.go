@@ -146,15 +146,11 @@ func (g *GTKCommon) createKeyWidget(text string, isRecent bool) *gtk.Frame {
 }
 
 func (g *GTKCommon) ShowKey(event processor.DisplayEvent) {
-	g.mu.Lock()
-	defer g.mu.Unlock()
-
-	if g.paused || g.keysBox == nil {
-		return
-	}
-
 	glib.IdleAdd(func() {
-		if g.keysBox == nil {
+		g.mu.Lock()
+		defer g.mu.Unlock()
+
+		if g.paused || g.keysBox == nil {
 			return
 		}
 
@@ -174,15 +170,11 @@ func (g *GTKCommon) ShowKey(event processor.DisplayEvent) {
 }
 
 func (g *GTKCommon) UpdateHistoryDisplay(events []processor.DisplayEvent) {
-	g.mu.Lock()
-	defer g.mu.Unlock()
-
-	if g.paused || g.keysBox == nil {
-		return
-	}
-
 	glib.IdleAdd(func() {
-		if g.keysBox == nil {
+		g.mu.Lock()
+		defer g.mu.Unlock()
+
+		if g.paused || g.keysBox == nil {
 			return
 		}
 
